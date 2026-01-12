@@ -6,7 +6,7 @@ This document explains how agents coordinate using LangGraph for adaptive invest
 
 ### Flow Diagram
 
-
+```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         START                                   │
 │                    (User submits repo URL)                      │
@@ -104,7 +104,7 @@ This document explains how agents coordinate using LangGraph for adaptive invest
               │  Confidence: 90% │
               └──────────────────┘
 
-
+```
 ### Key Components
 
 **Scout Agent**: Gathers data from git and web
