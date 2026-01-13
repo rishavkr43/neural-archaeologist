@@ -1,9 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import socketio
+from app.database import engine
+from app.models import Base
 from app.config import settings
-from app.routes.investigations import router as investigations_router
+from app.utils.websocket import sio
 
-# Initialize FastAPI app FIRST
+# Create all database tables
+Base.metadata.create_all(bind=engine)
+
+# Initialize FastAPI app
 app = FastAPI(
     title="Neural Archaeologist API",
     description="Multi-Agent AI System for Code History Excavation",
@@ -14,27 +20,26 @@ app = FastAPI(
 # Configure CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite default port
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite default port
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Import and include auth routes
+# Import and include routes
 from app.routes.auth import router as auth_router
-app.include_router(auth_router)
+from app.routes.investigations import router as investigations_router
 
-# Include investigation routes
+app.include_router(auth_router)
 app.include_router(investigations_router)
 
-# Startup event - create tables after app is ready
+# Startup event
 @app.on_event("startup")
 async def startup_event():
-    from app.database import engine
-    from app.models import Base
-    Base.metadata.create_all(bind=engine)
     print("✅ Database tables created successfully")
+    print("✅ WebSocket server ready")
+    print("📊 API Docs: http://127.0.0.1:8000/docs")
+    print("💚 Health: http://127.0.0.1:8000/health")
 
 # Health check endpoint
 @app.get("/health")
@@ -47,5 +52,13 @@ async def root():
     return {
         "message": "Welcome to Neural Archaeologist API",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "websocket": "/socket.io"
     }
+
+# Create ASGI app with Socket.IO
+socket_app = socketio.ASGIApp(
+    sio,
+    app,
+    socketio_path='/socket.io'
+)

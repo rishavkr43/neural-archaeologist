@@ -4,6 +4,7 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional
 from datetime import datetime
 import uuid
+import asyncio
 
 from app.database import get_db
 from app.models import Investigation, User, AgentLog
@@ -73,8 +74,8 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
     return user
 
 
-def progress_callback(investigation_id: str, db: Session):
-    """Create a callback function for agent progress"""
+def progress_callback_sync(investigation_id: str, db: Session):
+    """Create a callback function for agent progress (sync wrapper for async)"""
     def callback(agent_name: str, message: str, data: dict = None):
         # Save agent log to database
         log = AgentLog(
@@ -85,6 +86,21 @@ def progress_callback(investigation_id: str, db: Session):
         )
         db.add(log)
         db.commit()
+        
+        # Emit WebSocket event (run async in event loop)
+        try:
+            from app.utils.websocket import emit_agent_message
+            # Get or create event loop
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Schedule the coroutine
+            asyncio.create_task(emit_agent_message(investigation_id, agent_name, message, data))
+        except Exception as e:
+            print(f"WebSocket emit error: {e}")
     
     return callback
 
@@ -104,7 +120,7 @@ def run_investigation(investigation_id: str, repo_url: str, db: Session):
         db.commit()
         
         # Create coordinator with progress callback
-        callback = progress_callback(investigation_id, db)
+        callback = progress_callback_sync(investigation_id, db)
         coordinator = Coordinator(progress_callback=callback)
         
         # Run investigation
@@ -123,12 +139,28 @@ def run_investigation(investigation_id: str, repo_url: str, db: Session):
         investigation.completed_at = datetime.utcnow()
         
         db.commit()
+        
+        # Emit completion event
+        try:
+            from app.utils.websocket import emit_investigation_complete
+            loop = asyncio.get_event_loop()
+            asyncio.create_task(emit_investigation_complete(investigation_id))
+        except Exception as e:
+            print(f"WebSocket completion emit error: {e}")
     
     except Exception as e:
         # Mark as failed
         investigation.status = "failed"
         investigation.report = f"Investigation failed: {str(e)}"
         db.commit()
+        
+        # Emit error event
+        try:
+            from app.utils.websocket import emit_investigation_error
+            loop = asyncio.get_event_loop()
+            asyncio.create_task(emit_investigation_error(investigation_id, str(e)))
+        except Exception as e:
+            print(f"WebSocket error emit error: {e}")
 
 
 @router.post("/", response_model=InvestigationResponse, status_code=status.HTTP_201_CREATED)
