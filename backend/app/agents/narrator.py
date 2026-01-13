@@ -251,12 +251,22 @@ Base on code age, activity patterns, and technical relevance
     def format_contributor_profiles(self, scout_data: Dict) -> str:
         """Format contributor information"""
         profiles = []
+        total_commits = scout_data.get('total_commits', 1)
         
         for contributor in scout_data.get('top_contributors', [])[:5]:
+            name = contributor.get('name', contributor.get('username', 'Unknown'))
+            commits = contributor.get('commit_count', contributor.get('contributions', 0))
+            
+            # Calculate percentage if missing (GitHub API data doesn't have it)
+            if 'percentage' in contributor:
+                percentage = contributor['percentage']
+            else:
+                percentage = round((commits / total_commits) * 100, 1) if total_commits > 0 else 0
+            
             profile = f"""
-### {contributor['name']}
-- **Commits:** {contributor['commit_count']} ({contributor['percentage']}% of total)
-- **Impact:** {'Lead Developer' if contributor['percentage'] > 30 else 'Core Contributor' if contributor['percentage'] > 10 else 'Regular Contributor'}
+### {name}
+- **Commits:** {commits} ({percentage}% of total)
+- **Impact:** {'Lead Developer' if percentage > 30 else 'Core Contributor' if percentage > 10 else 'Regular Contributor'}
 """
             profiles.append(profile)
         

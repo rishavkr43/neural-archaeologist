@@ -41,10 +41,11 @@ class Coordinator:
         self.emit_progress("Routing to Scout Agent")
         
         # Determine if we should do web search
-        do_web_search = state.get('needs_web_search', False) and not state.get('web_search_done', False)
+        # Only do web search if explicitly requested (not on first round)
+        do_web_search = state.get('needs_web_search', False)
         
         if do_web_search:
-            self.emit_progress("Scout performing web search for additional evidence")
+            self.emit_progress("Scout performing additional web search for more evidence")
         else:
             self.emit_progress("Scout analyzing git repository")
         
@@ -54,12 +55,20 @@ class Coordinator:
             include_web_search=do_web_search
         )
         
+        # Merge web search results if we already have scout data
+        if state.get('scout_data') and do_web_search:
+            # Keep existing data but add web search results
+            existing_data = state['scout_data']
+            existing_data['web_search_results'] = scout_data.get('web_search_results', {})
+            scout_data = existing_data
+        
         # Update state
         state['scout_data'] = scout_data
         state['current_round'] = state.get('current_round', 0) + 1
         
         if do_web_search:
             state['web_search_done'] = True
+            state['needs_web_search'] = False  # Reset the flag after doing web search
         
         return state
     
@@ -117,13 +126,20 @@ class Coordinator:
             self.emit_progress("Max rounds reached, proceeding to report generation")
             return "narrator"
         
-        # Check if we need web search and haven't done it yet
-        if state.get('needs_web_search', False) and not state.get('web_search_done', False):
-            self.emit_progress("Decision: Gather more evidence from web")
+        # Check if confidence is below threshold and we haven't done web search yet
+        confidence = state.get('confidence', 0)
+        web_search_done = state.get('web_search_done', False)
+        
+        if confidence < 70 and not web_search_done:
+            self.emit_progress(f"Decision: Confidence {confidence}% < 70%, gathering web evidence")
+            state['needs_web_search'] = True
             return "scout"
         
         # Otherwise proceed to narrator
-        self.emit_progress("Decision: Sufficient evidence, generating report")
+        if confidence >= 70:
+            self.emit_progress(f"Decision: Confidence {confidence}% meets threshold, generating report")
+        else:
+            self.emit_progress(f"Decision: Web search done, generating report with {confidence}% confidence")
         return "narrator"
     
     def build_workflow(self) -> StateGraph:

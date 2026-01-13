@@ -75,7 +75,7 @@ def get_current_user(authorization: str = Header(None), db: Session = Depends(ge
 
 
 def progress_callback_sync(investigation_id: str, db: Session):
-    """Create a callback function for agent progress (sync wrapper for async)"""
+    """Create a callback function for agent progress"""
     def callback(agent_name: str, message: str, data: dict = None):
         # Save agent log to database
         log = AgentLog(
@@ -87,20 +87,8 @@ def progress_callback_sync(investigation_id: str, db: Session):
         db.add(log)
         db.commit()
         
-        # Emit WebSocket event (run async in event loop)
-        try:
-            from app.utils.websocket import emit_agent_message
-            # Get or create event loop
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # Schedule the coroutine
-            asyncio.create_task(emit_agent_message(investigation_id, agent_name, message, data))
-        except Exception as e:
-            print(f"WebSocket emit error: {e}")
+        # Note: WebSocket events will be polled by frontend instead
+        # Real-time WebSocket from background tasks is complex in FastAPI
     
     return callback
 
@@ -126,12 +114,13 @@ def run_investigation(investigation_id: str, repo_url: str, db: Session):
         # Run investigation
         result = coordinator.investigate(repo_url)
         
-        # Save results
+        # Save results - include full report data in findings for visualization
         investigation.findings = {
             "scout_data": result.get("scout_data", {}),
             "analysis": result.get("analysis", {}),
             "rounds_taken": result.get("rounds_taken", 0),
-            "web_search_performed": result.get("web_search_performed", False)
+            "web_search_performed": result.get("web_search_performed", False),
+            "report_data": result.get("report", {})  # Full report object with timeline, citations, etc.
         }
         investigation.report = result["report"]["narrative"]
         investigation.confidence = result["confidence"]
@@ -139,28 +128,12 @@ def run_investigation(investigation_id: str, repo_url: str, db: Session):
         investigation.completed_at = datetime.utcnow()
         
         db.commit()
-        
-        # Emit completion event
-        try:
-            from app.utils.websocket import emit_investigation_complete
-            loop = asyncio.get_event_loop()
-            asyncio.create_task(emit_investigation_complete(investigation_id))
-        except Exception as e:
-            print(f"WebSocket completion emit error: {e}")
     
     except Exception as e:
         # Mark as failed
         investigation.status = "failed"
         investigation.report = f"Investigation failed: {str(e)}"
         db.commit()
-        
-        # Emit error event
-        try:
-            from app.utils.websocket import emit_investigation_error
-            loop = asyncio.get_event_loop()
-            asyncio.create_task(emit_investigation_error(investigation_id, str(e)))
-        except Exception as e:
-            print(f"WebSocket error emit error: {e}")
 
 
 @router.post("/", response_model=InvestigationResponse, status_code=status.HTTP_201_CREATED)

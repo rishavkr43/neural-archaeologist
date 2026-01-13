@@ -67,7 +67,7 @@ class AnalystAgent:
 {chr(10).join(web_summary[:5]) if web_summary else "No web context found"}
 
 ## Top Contributors:
-{chr(10).join([f"- {c['name']}: {c['commit_count']} commits ({c['percentage']}%)" for c in scout_data.get('top_contributors', [])[:3]])}
+{chr(10).join([f"- {c.get('name', c.get('username', 'Unknown'))}: {c.get('commit_count', c.get('contributions', 0))} commits" for c in scout_data.get('top_contributors', [])[:3]])}
 
 ---
 

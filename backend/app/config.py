@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # API Keys
     GROQ_API_KEY: str
     SERPAPI_API_KEY: str
+    GITHUB_TOKEN: Optional[str] = None  # Optional GitHub API token for enriched data
     
     # JWT Secret
     SECRET_KEY: str
