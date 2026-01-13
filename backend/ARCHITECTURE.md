@@ -6,6 +6,7 @@ This document explains how agents coordinate using LangGraph for adaptive invest
 
 ### Flow Diagram
 
+```
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                         START                                   │
@@ -104,10 +105,10 @@ This document explains how agents coordinate using LangGraph for adaptive invest
               │  Confidence: 90% │
               └──────────────────┘
 
-
+```
 ### Key Components
 
-**Scout Agent**: Gathers data from git and web
+**Scout Agent**: Gathers data from git and web 
 **Analyst Agent**: Analyzes patterns and assigns confidence
 **Coordinator**: Makes routing decisions based on confidence
 **Narrator Agent**: Generates final narrative report
