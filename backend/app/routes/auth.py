@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from app.database import get_db
 from app.models import User
-from app.utils.auth import hash_password, verify_password, create_access_token
+from app.utils.auth import hash_password_async, verify_password_async, create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -39,7 +39,7 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
     
     # Create new user
-    hashed_pw = hash_password(user_data.password)
+    hashed_pw = await hash_password_async(user_data.password)
     new_user = User(
         email=user_data.email,
         password_hash=hashed_pw
@@ -69,7 +69,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
         )
     
     # Verify password
-    if not verify_password(user_data.password, user.password_hash):
+    if not await verify_password_async(user_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"

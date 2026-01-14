@@ -6,6 +6,9 @@ from app.config import settings
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # Verify connections before using
+    pool_size=5,          # Maintain 5 connections in pool
+    max_overflow=10,      # Allow 10 additional connections
+    pool_timeout=30,      # Timeout waiting for connection
     echo=settings.DEBUG  # Log SQL queries in debug mode
 )
 
