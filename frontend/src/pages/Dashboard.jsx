@@ -325,13 +325,15 @@ function Dashboard() {
                                 className="w-3 h-3 bg-red-500 rounded-full shadow-lg shadow-red-500/50"
                             />
                             <h2 className="text-lg font-semibold text-white">Live Excavation Feed</h2>
-                            {/* Spinning loader when processing */}
+                            {/* Animated pickaxe when processing */}
                             {(status === 'pending' || status === 'processing') && (
-                                <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                                    className="w-5 h-5 border-2 border-purple-500/30 border-t-purple-500 rounded-full"
-                                />
+                                <motion.span
+                                    animate={{ rotate: [0, -30, 0] }}
+                                    transition={{ duration: 0.6, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="text-lg origin-bottom-right inline-block"
+                                >
+                                    ⛏️
+                                </motion.span>
                             )}
                             <span className="text-xs text-purple-400 ml-auto bg-purple-500/10 px-3 py-1 rounded-full">
                                 {logs.length} discoveries
