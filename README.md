@@ -16,7 +16,7 @@ Companies spend **$50+ billion annually** on legacy code maintenance. When devel
 - 💰 **Is anything salvageable?**
 - 🔄 **Should we migrate or rebuild?**
 
-Current tools like **GitHub Copilot** explain what code does, but can't answer these deeper questions.
+Current tools like **GitHub Copilot** explain what code does, but cannot answer these deeper questions.
 
 ---
 

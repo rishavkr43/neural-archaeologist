@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 # Initialize FastAPI app
 app = FastAPI(
     title="Neural Archaeologist API",
-    description="Multi-Agent AI System for Code History Excavation",
+    description="Multi-Agent AI System for Code History Excavation ",
     version="1.0.0",
     debug=settings.DEBUG
 )
