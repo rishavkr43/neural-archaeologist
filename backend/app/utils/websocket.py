@@ -4,7 +4,13 @@ from typing import Dict, Set
 # Create Socket.IO server
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*'  # Allow frontend to connect
+    cors_allowed_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://neural-archaeologist.vercel.app"
+    ],
+    logger=True,
+    engineio_logger=True
 )
 
 # Track active connections per investigation
