@@ -95,17 +95,20 @@ def progress_callback_sync(investigation_id: str, db: Session):
 
 def run_investigation(investigation_id: str, repo_url: str, db: Session):
     """Background task to run investigation"""
+    import traceback
     
     # Get investigation record
     investigation = db.query(Investigation).filter(Investigation.id == investigation_id).first()
     
     if not investigation:
+        print(f"[ERROR] Investigation {investigation_id} not found in database")
         return
     
     try:
         # Update status
         investigation.status = "processing"
         db.commit()
+        print(f"[INFO] Starting investigation {investigation_id} for {repo_url}")
         
         # Create coordinator with progress callback
         callback = progress_callback_sync(investigation_id, db)
@@ -128,11 +131,16 @@ def run_investigation(investigation_id: str, repo_url: str, db: Session):
         investigation.completed_at = datetime.utcnow()
         
         db.commit()
+        print(f"[SUCCESS] Investigation {investigation_id} completed with {result['confidence']}% confidence")
     
     except Exception as e:
-        # Mark as failed
+        # Mark as failed AND log the error to console
+        error_msg = f"Investigation failed: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        print(f"[TRACEBACK] {traceback.format_exc()}")
+        
         investigation.status = "failed"
-        investigation.report = f"Investigation failed: {str(e)}"
+        investigation.report = error_msg
         db.commit()
 
 
